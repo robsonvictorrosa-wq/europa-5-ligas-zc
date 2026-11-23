@@ -1,0 +1,22 @@
+{
+  "name": "europa-5-ligas-zc",
+  "version": "1.0.0",
+  "description": "Europa 5 Grandes Ligas ZC – modo carreira multiplayer (Premier League, LaLiga, Serie A, Bundesliga, Ligue 1) com elencos FC27",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "build": "node import.js",
+    "test": "node test/run.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "compression": "^1.8.2",
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}

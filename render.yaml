@@ -1,0 +1,22 @@
+# Europa 5 Grandes Ligas ZC – serviço NOVO e independente (não usa repo/serviço/banco da Libertadores ZC nem do Europa 3 Ligas).
+# Plano Free: dorme após 15 min sem acesso (sem keep-awake e sem cron, por decisão do Robson).
+services:
+  - type: web
+    name: europa-5-ligas-zc
+    runtime: node
+    plan: free
+    region: virginia
+    branch: main
+    buildCommand: npm ci && node import.js
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_URL
+        sync: false # Neon grátis próprio (projeto europa-5-ligas-zc)
+      - key: ADMIN_PIN
+        sync: false # PIN da conta Robshow, criada na 1ª subida
+      - key: ADMIN_APELIDOS
+        sync: false # opcional: outros admins, separados por vírgula
