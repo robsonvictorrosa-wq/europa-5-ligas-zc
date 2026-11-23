@@ -26,3 +26,8 @@ Arquivos: `server.js` (boot) · `game.js` (universo + estado) · `season.js` (ca
 - Mesma estrutura de abas do Libertadores ZC: Menu, Campeonato, Mercado, Jogos, Tabela, Estatísticas, Calendário, Leilão, Clubes e verbas, Central da liga (admin).
 - Em Jogos, Tabela e Estatísticas as setas ‹ › alternam a competição: 5 ligas → Champions/Europa/Conference → chaveamento das 5 copas nacionais (`GET /api/comps`, `GET /api/stats?comp=`).
 - Aba Calendário (`#/calendario/<clube>/<AAAA-MM>`): grade mensal Dom–Sáb com adversário, Casa/Fora, competição e placar (V/E/D); começa no seu clube, com seletor de time. Gerada dos jogos reais: fases de copa ainda não sorteadas aparecem como "A sortear" e somem se o time for eliminado; a página recarrega sozinha quando a liga avança.
+
+## Escudos
+- Escudos reais dos 96 clubes em `public/crests/<club_id>.png` (128 px, servidos pelo próprio site, sem hotlink), baixados uma vez da imagem do infobox de cada clube na Wikipedia com `python3 scripts/fetch-crests.py [ids...]`. Os nomes genéricos do FC27 usam o escudo do clube real: Lombardia FC = Inter, Milano FC = Milan, Bergamo Calcio = Atalanta.
+- `public/crests/index.js` lista os ids com escudo; qualquer clube fora da lista (ex.: jogador de clube de fora do jogo no leilão) ou imagem que falhar cai num escudo neutro com as iniciais.
+- Aparecem em tabelas, jogos, estatísticas, chaveamentos, Europa, mercado, leilão, página do clube, lista de clubes e calendário.
