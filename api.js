@@ -152,6 +152,18 @@ module.exports=(app,G,SE)=>{const {q,tx,fail,ready,X,CFG}=G;
  app.post('/api/admin/season/new',admin,wrap(async(r,s)=>{confirmWord(r,'NOVA TEMPORADA');await SE.newSeason(r.user.id,r.body?.start_date||null);s.json({ok:1});}));
  app.post('/api/admin/season/reset',admin,wrap(async(r,s)=>{confirmWord(r,'RESETAR');await SE.reset(r.user.id,r.body?.start_date||null);s.json({ok:1});}));
  app.get('/api/admin/users',admin,wrap(async(r,s)=>s.json((await q('SELECT id,nick,is_admin,role,created_at FROM users ORDER BY id')).map(u=>({id:u.id,nick:u.nick,created_at:u.created_at,role:RL.roleOf(u),fixed:RL.isFixed(u.nick),admin:isAdm(u),club:(cid=>cid?G.clubName(cid):null)([...G.ST.clubs].find(([,c])=>c.manager_id===u.id)?.[0])})))));
+ // ---------- campeonatos personalizados (custom.js): ver é público; criar/simular/apagar só admin ----------
+ const CU=require('./custom')(G);
+ app.get('/api/custom',wrap(async(r,s)=>{await ready;s.json(await CU.list());}));
+ app.get('/api/custom/:id',wrap(async(r,s)=>{await ready;s.json(await CU.view(+r.params.id));}));
+ app.get('/api/admin/custom/leagues',admin,wrap(async(r,s)=>s.json(CU.leagues(r.query.women==='1'))));
+ app.get('/api/admin/custom/clubs',admin,wrap(async(r,s)=>s.json(CU.clubs({league:r.query.league,q:r.query.q,women:r.query.women==='1'}))));
+ app.post('/api/admin/custom/preview',admin,wrap(async(r,s)=>{const P=CU.plan(r.body);s.json(P.parts.map(p=>({key:p.key,name:p.name,type:p.type,n:p.clubs.length,from:p.from||null})));}));
+ app.post('/api/admin/custom',admin,wrap(async(r,s)=>{await ready;const id=await CU.create(r.body,r.user.id);await G.log(null,`🏆 Campeonato personalizado criado: ${String(r.body.name).slice(0,60)} (por ${r.user.nick}).`,r.user.id);s.json({id});}));
+ app.post('/api/admin/custom/:id/next',admin,wrap(async(r,s)=>s.json(await CU.next(+r.params.id))));
+ app.post('/api/admin/custom/:id/all',admin,wrap(async(r,s)=>s.json(await CU.all(+r.params.id))));
+ app.post('/api/admin/custom/:id/again',admin,wrap(async(r,s)=>s.json({id:await CU.again(+r.params.id,r.user.id)})));
+ app.delete('/api/admin/custom/:id',admin,wrap(async(r,s)=>{await CU.remove(+r.params.id);s.json({ok:1});}));
  // cargos: só admin promove/rebaixa (membro/moderador/admin); admins fixos (Robshow + ADMIN_APELIDOS) não mudam
  app.post('/api/admin/users/:id/role',admin,wrap(async(r,s)=>{const role=String(r.body?.role||'');if(!RL.ROLES.includes(role))throw fail('Cargo inválido (membro, moderador ou admin)');
   const [u]=await q('SELECT id,nick,role,is_admin FROM users WHERE id=$1',[+r.params.id]);if(!u)throw fail('Usuário não encontrado',404);

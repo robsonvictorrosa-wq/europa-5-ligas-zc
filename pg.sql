@@ -17,3 +17,7 @@ INSERT INTO game_state(id) VALUES(1) ON CONFLICT(id) DO NOTHING;
 -- Cargos (23/11/2026): membro/moderador/admin. Migração sem perda: contas com is_admin viram 'admin'; is_admin segue espelhando role='admin'.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'membro';
 UPDATE users SET role='admin' WHERE is_admin AND role='membro';
+-- Campeonatos personalizados (23/11/2026): separados da carreira principal; enxuto (config/estado em JSONB, gols só [jogador,clube]).
+CREATE TABLE IF NOT EXISTS custom_comps(id SERIAL PRIMARY KEY,name TEXT NOT NULL,cfg JSONB NOT NULL,state JSONB NOT NULL DEFAULT '{}',status TEXT NOT NULL DEFAULT 'running',season INT NOT NULL DEFAULT 1,parent_id INT,created_by INT,created_at TIMESTAMPTZ DEFAULT now(),finished_at TIMESTAMPTZ);
+CREATE TABLE IF NOT EXISTS custom_matches(id SERIAL PRIMARY KEY,comp_id INT NOT NULL REFERENCES custom_comps(id) ON DELETE CASCADE,part TEXT NOT NULL,round INT NOT NULL,stage TEXT,tie INT,leg INT NOT NULL DEFAULT 1,home INT NOT NULL,away INT NOT NULL,hg INT,ag INT,pens TEXT,played BOOLEAN NOT NULL DEFAULT false,goals JSONB);
+CREATE INDEX IF NOT EXISTS cm_comp ON custom_matches(comp_id,part,round);

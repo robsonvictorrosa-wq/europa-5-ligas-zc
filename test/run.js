@@ -20,6 +20,17 @@ const assert=require('assert');const C=require('../comps'),EU=require('../europa
  assert.equal(tier(Q,105),'UCL');assert.equal(tier(Q,219),'UCL');assert.equal(tier(Q,310),'UCL');assert.equal(tier(Q,405),'UEL');
  assert.equal(new Set(['UCL','UEL','UECL'].flatMap(k=>Q[k].map(x=>x.club_id))).size,96);
  assert.ok(Q._moves.find(m=>m.club_id===219).kept);}
+// campeonatos personalizados: tabela de rodadas (todos x todos, mando equilibrado) e validação do plano
+{const CU=require('../custom')({q:()=>{},tx:()=>{},fail:m=>Object.assign(new Error(m),{status:400}),uni:require('better-sqlite3')(require('path').join(__dirname,'../data/game.db'),{readonly:true})});
+ for(const n of [4,5,12,20]){const ids=[...Array(n).keys()].map(i=>i+1),R=CU.rr(ids,true),seen={},home={};
+  for(const g of R)for(const [h,a] of g){seen[h+'-'+a]=(seen[h+'-'+a]||0)+1;home[h]=(home[h]||0)+1;}
+  assert.equal(R.length,2*(n-1+n%2));assert.ok(ids.every(a=>ids.every(b=>a===b||seen[a+'-'+b]===1)),'rr '+n);assert.equal(Math.min(...Object.values(home)),Math.max(...Object.values(home)));}
+ const pl=CU.clubs({league:'Premier League'}).map(c=>c.id);assert.equal(pl.length,20);
+ const P=CU.plan({name:'Teste',clubs:pl,format:{type:'league',double:true},cup:true,intl:{enabled:true,size:16,from:4,type:'groups',name:'Inter'}});
+ assert.deepEqual(P.parts.map(p=>p.key),['main','cup','intl']);assert.equal(P.parts[2].clubs.length,16);
+ assert.throws(()=>CU.plan({name:'x',clubs:pl,format:{type:'league'}}));assert.throws(()=>CU.plan({name:'Teste',clubs:pl,format:{type:'groups',groups:8,adv:2}}));
+ assert.ok(!CU.clubs({q:'Sem Clube'}).length,'Sem Clube fora');
+ console.log('custom OK');}
 console.log('unidade OK');
 // --- E2E ---
 (async()=>{const BASE=process.env.E2E_BASE;if(!BASE)return;const PIN=process.env.E2E_ADMIN_PIN;

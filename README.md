@@ -32,3 +32,8 @@ Arquivos: `server.js` (boot) · `game.js` (universo + estado) · `season.js` (ca
 - Escudos reais dos 96 clubes em `public/crests/<club_id>.png` (128 px, servidos pelo próprio site, sem hotlink), baixados uma vez da imagem do infobox de cada clube na Wikipedia com `python3 scripts/fetch-crests.py [ids...]`. Os nomes genéricos do FC27 usam o escudo do clube real: Lombardia FC = Inter, Milano FC = Milan, Bergamo Calcio = Atalanta.
 - `public/crests/index.js` lista os ids com escudo; qualquer clube fora da lista (ex.: jogador de clube de fora do jogo no leilão) ou imagem que falhar cai num escudo neutro com as iniciais.
 - Aparecem em tabelas, jogos, estatísticas, chaveamentos, Europa, mercado, leilão, página do clube, lista de clubes e calendário.
+
+## Campeonatos personalizados
+- Aba **Personalizados** (todos veem) e **Criar campeonato** (só admin): assistente em 5 passos — nome, times (liga inteira, N melhores de uma liga ou mistura com busca), formato (pontos corridos, mata-mata, grupos + mata-mata), extras (copa, competição internacional) e revisão.
+- Lógica em `custom.js`, tabelas `custom_comps`/`custom_matches` (em `pg.sql`), telas em `public/custom.js`. Rotas: `GET /api/custom[/:id]` (público) e `/api/admin/custom...` (admin).
+- Teste: `python3 test/custom-e2e.py <url> <pin-admin>`.
