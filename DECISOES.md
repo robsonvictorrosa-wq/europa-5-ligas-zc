@@ -4,11 +4,13 @@ Horários de Brasília.
 ## Clubes (FC27)
 Premier League 20, LaLiga 20, Serie A 20, Bundesliga 18, Ligue 1 18 = 96 clubes, exatamente o total das três copas europeias (36 + 30 + 30). Nomes como no FC27 (ex.: "Lombardia FC", "Milano FC", "Bergamo Calcio" são os nomes licenciados do jogo). Elencos de 21 a 35 jogadores.
 
-## Verba inicial (Robson 23/11: maior over, menor verba)
-Over do time = média dos 11 maiores overs do elenco (mesma regra da base).
-`verba = 0 + (500 mi − 0) × (overMax − over) / (overMax − overMin)`, arredondada para múltiplos de € 50 mi.
-overMax = PSG 87,8 → € 0; overMin = SC Paderborn 07 71,1 → € 500 mi. Mesma escala da Libertadores ZC (0 a 500 mi, degraus de 50 mi). Parâmetros em `config/europa.json` → `budget` (min, max, step).
-Distribuição: € 0 (1 clube), 50 (5), 100 (3), 150 (5), 200 (8), 250 (13), 300 (19), 350 (18), 400 (15), 450 (5), 500 (4).
+## Verba inicial (Robson 23/11/2026, mesma regra da Libertadores ZC 50 com escala ajustada)
+- Over para a verba = média dos **18** maiores overs do elenco inicial FC27; desempate pela média dos 11 maiores. (O over exibido do time continua sendo a média dos 11 maiores.)
+- O clube de maior over (PSG, 85,22) recebe € 0; cada ponto de over abaixo dele vale **+ € 32,5 mi**; arredonda para o múltiplo de € 25 mi mais próximo; teto € 500 mi.
+- Por que € 32,5 mi e não € 55 mi como no ZC 50: aqui a faixa vai de 85,22 (PSG) a 69,83 (Paderborn); com € 55 mi por ponto, 48 dos 96 clubes bateriam no teto. Robson aprovou € 32,5 mi ("Europa 5 Ligas: aprova €32,5 mi por ponto").
+- Exemplos: PSG 0, Real Madrid 0, Barça/Arsenal/City/Bayern 25 mi, Liverpool e Atlético 75 mi, Lombardia (Inter) 100 mi, Elversberg/Paderborn/Le Mans/Troyes 500 mi.
+- Distribuição (€ mi (clubes)): 0 (2), 25 (4), 75 (2), 100 (1), 125 (2), 150 (4), 175 (3), 200 (8), 225 (6), 250 (5), 275 (9), 300 (7), 325 (10), 350 (10), 375 (4), 400 (6), 425 (8), 450 (1), 500 (4).
+- Código: `budget.js` + `config/europa.json` → `budget` (top_n, tiebreak_n, per_point, step, max); calculada no `import.js` (build). Nova temporada mantém as verbas; resetar volta ao snapshot do início da temporada (snapshot da T1 atualizado para a tabela nova em 23/11, antes de qualquer gasto).
 
 ## Copas europeias – vagas (aprovadas pelo Robson em 23/11/2026)
 - Champions: 7 por país (35). Europa League e Conference: 6 + 6 nas ligas de 20, 5 + 5 nas de 18 (28 + 28).

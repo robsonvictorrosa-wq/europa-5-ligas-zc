@@ -38,11 +38,14 @@
       "cup": "Coupe de France ZC"
     }
   ],
-  "_doc_budget": "Verba inicial inversamente proporcional ao over do time (média dos 11 maiores overs do elenco FC27). verba = min + (max - min) * (overMax - over) / (overMax - overMin), arredondada para múltiplos de 'step'. Mesma escala da Libertadores ZC (0 a 500 mi, degraus de 50 mi). overMax/overMin = maior e menor over entre os 96 clubes.",
+  "_doc_budget": "Verba inicial (Robson 23/11/2026): over para verba = média dos 18 maiores overs do elenco inicial FC27 (desempate: média dos 11 maiores). O clube de maior over recebe 0; cada ponto abaixo dele vale +per_point; arredondado ao múltiplo de 'step' mais próximo; teto 'max'. O over exibido do time continua sendo a média dos 11 maiores.",
   "budget": {
+    "top_n": 18,
+    "tiebreak_n": 11,
+    "per_point": 32500000,
+    "step": 25000000,
     "min": 0,
-    "max": 500000000,
-    "step": 50000000
+    "max": 500000000
   },
   "_doc_team_over": "Over do time = média dos 11 maiores overs do elenco (mesma regra da base).",
   "_doc_league": "Liga: todos contra todos em turno e returno (20 clubes = 38 rodadas; 18 clubes = 34). Turno pelo método de Berger (mando alternado, nunca 3 seguidos) e returno espelhado.",

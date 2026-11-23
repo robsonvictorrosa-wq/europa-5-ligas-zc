@@ -24,8 +24,8 @@ db.exec(`UPDATE clubs SET n_players=(SELECT count(*) FROM players WHERE club_id=
  squad_value=(SELECT coalesce(sum(market_value),0) FROM players WHERE club_id=clubs.id),
  overall=(SELECT round(avg(overall),1) FROM (SELECT overall FROM players WHERE club_id=clubs.id AND overall IS NOT NULL ORDER BY overall DESC LIMIT 11))`);
 // verba inicial: maior over = menor verba (budget.js)
-const game=db.prepare('SELECT id,overall FROM clubs WHERE in_game=1').all();const bud=B.budgets(game,CFG.budget);
-const up=db.prepare('UPDATE clubs SET budget=? WHERE id=?');db.transaction(()=>{for(const c of game)up.run(bud.get(c.id),c.id);})();
+const game=db.prepare('SELECT id FROM clubs WHERE in_game=1').all().map(c=>({id:c.id,ovs:db.prepare('SELECT overall FROM players WHERE club_id=? AND overall IS NOT NULL').all(c.id).map(r=>r.overall)}));const bud=B.budgets(game,CFG.budget);
+const up=db.prepare('UPDATE clubs SET budget=? WHERE id=?');db.transaction(()=>{for(const c of game)up.run(bud.get(c.id).budget,c.id);})();
 db.exec('UPDATE leagues SET n_clubs=(SELECT count(*) FROM clubs WHERE league_id=leagues.id)');
 db.prepare('INSERT INTO meta VALUES(?,?)').run('fc27_source',JSON.stringify(src.metadata||{}));
 const ls=db.prepare('SELECT l.name,l.n_clubs,min(c.n_players) mn,max(c.n_players) mx FROM leagues l JOIN clubs c ON c.league_id=l.id WHERE l.in_game=1 GROUP BY l.id').all();

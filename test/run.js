@@ -10,7 +10,7 @@ const assert=require('assert');const C=require('../comps'),EU=require('../europa
  const Q=EU.qualify([mk(1,20),mk(2,20),mk(3,20),mk(4,18),mk(5,18)]);assert.equal(Q.UCL.length,36);assert.equal(Q.UEL.length,30);assert.equal(Q.UECL.length,30);
  const all=[...Q.UCL,...Q.UEL,...Q.UECL].map(x=>x.club_id);assert.equal(new Set(all).size,96);
  assert.equal(Q.UCL.filter(x=>x.via==='sobra').length,1);assert.equal(Q.UEL.filter(x=>x.via==='sobra').length,2);assert.equal(Q.UECL.filter(x=>x.via==='sobra').length,2);}
-{const m=B.budgets([{id:1,overall:88},{id:2,overall:71},{id:3,overall:80}],{min:0,max:5e8,step:5e7});assert.equal(m.get(1),0);assert.equal(m.get(2),5e8);assert.ok(m.get(3)>0&&m.get(3)<5e8);}
+{const f=(a,n)=>Array(n).fill(a);const cfg={top_n:18,tiebreak_n:11,per_point:32.5e6,step:25e6,min:0,max:5e8};const m=B.budgets([{id:1,ovs:f(85,18)},{id:2,ovs:f(70,18)},{id:3,ovs:[...f(83,11),...f(82,7),60]},{id:4,ovs:f(84.6,18)}],cfg);assert.equal(m.get(1).budget,0);assert.equal(m.get(2).budget,5e8);assert.equal(m.get(3).budget,75e6);assert.equal(m.get(4).budget,25e6);assert.equal(m.get(1).rank,1);}
 {const mk=(id,n)=>({id,name:'L'+id,clubs:[...Array(n).keys()].map(i=>({id:id*100+i,name:'c'+id+'_'+i,overall:90-i-id*0.1}))});const Ls=[mk(1,20),mk(2,20),mk(3,20),mk(4,18),mk(5,18)];
  const rk=new Map(Ls.map(L=>[L.id,L.clubs.map(c=>c.id).reverse()])); // classificação invertida em relação ao over
  const cnt=Q=>['UCL','UEL','UECL'].map(k=>Q[k].length).join('/');const tier=(Q,id)=>['UCL','UEL','UECL'].find(k=>Q[k].some(x=>x.club_id===id));
