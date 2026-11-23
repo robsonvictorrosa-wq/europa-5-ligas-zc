@@ -49,3 +49,12 @@ Prêmios por jogo/posição (`prizes_per_match` = 0), janelas automáticas do me
 
 - Média de gols num turno completo das 5 ligas: 2,97 → 3,03.
 - Com +10 o resultado praticamente não muda: aumentar o peso ali derrubaria a vitória do mais fraco abaixo de 10%, que foi o limite pedido.
+
+## Cargos: admin, moderador, membro (Robson 23/11/2026)
+- Guardados em `users.role` (`membro` | `moderador` | `admin`). Migração automática no `pg.sql`, sem perda: contas que já eram admin (`is_admin`) viram `admin`; `is_admin` continua espelhando `role='admin'`.
+- **Admins fixos**: Robshow + `ADMIN_APELIDOS` (Render). São sempre admin e ninguém consegue rebaixá-los (403).
+- **Administrador**: tudo (temporada, data de início, nova temporada, resetar, agenda automática, técnicos dos clubes, verbas, leilão, mercado) + promover/rebaixar qualquer usuário não fixo. Pode haver quantos admins quiser. A futura aba de criar campeonatos também será só de admin.
+- **Moderador**: só simular a próxima data de jogos, abrir/fechar mercado, abrir/encerrar leilão e montar os lotes do leilão (busca na base FC27, pôr/remover lote sem lance). Não pode: data de início, nova temporada, resetar, agenda automática, técnicos, verbas, cargos.
+- **Proteção no servidor**: `roles.js` → `guard(auth)('moderador'|'admin')` (middlewares `mod`/`admin` em `api.js`), 401 sem login e 403 sem cargo. `/api/me` devolve `role`, `fixed`, `mod`. Rota nova: `POST /api/admin/users/:id/role {role}` (só admin; registra no log).
+- **Tela**: Central da liga aparece para moderador (só os botões dele) e admin; a seção "Usuários e cargos" (lista com seletor de cargo) só para admin.
+- Teste: `python3 test/roles-e2e.py <url> <pin do admin>` confere 200/403 de cada papel em todas as rotas de admin/moderador.

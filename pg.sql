@@ -14,3 +14,6 @@ CREATE TABLE IF NOT EXISTS euro_slots(season INT NOT NULL,comp TEXT NOT NULL,clu
 CREATE TABLE IF NOT EXISTS snapshots(season INT PRIMARY KEY,data JSONB NOT NULL,at TIMESTAMPTZ DEFAULT now());
 CREATE TABLE IF NOT EXISTS log(id SERIAL PRIMARY KEY,season INT,text TEXT NOT NULL,user_id INT,at TIMESTAMPTZ DEFAULT now());
 INSERT INTO game_state(id) VALUES(1) ON CONFLICT(id) DO NOTHING;
+-- Cargos (23/11/2026): membro/moderador/admin. Migração sem perda: contas com is_admin viram 'admin'; is_admin segue espelhando role='admin'.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'membro';
+UPDATE users SET role='admin' WHERE is_admin AND role='membro';

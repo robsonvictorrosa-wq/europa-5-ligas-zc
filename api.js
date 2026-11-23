@@ -1,19 +1,20 @@
 // Rotas HTTP (contas apelido+PIN, ligas, clubes, mercado entre qualquer liga, leilão, painel do admin)
-const crypto=require('crypto'),AR=require('./auction-rules'),ADM=require('./admins');
+const crypto=require('crypto'),AR=require('./auction-rules'),ADM=require('./admins'),RL=require('./roles');
 module.exports=(app,G,SE)=>{const {q,tx,fail,ready,X,CFG}=G;
  const wrap=f=>(r,s)=>f(r,s).catch(e=>{if(!e.expose)console.error(e);s.status(e.status||500).json({error:e.expose?e.message:'Erro interno'})});
  // ---------- contas (mesmo esquema da base: scrypt assíncrono + token em cookie/Bearer) ----------
  let SQ=Promise.resolve();const hash=(p,salt=crypto.randomBytes(16).toString('hex'))=>{const r=SQ.then(()=>new Promise((ok,ko)=>crypto.scrypt(p,salt,32,(e,k)=>e?ko(e):ok(salt+':'+k.toString('hex')))));SQ=r.catch(()=>{});return r;};
  const check=async(p,h)=>{const [s]=h.split(':');const x=Buffer.from(await hash(p,s));const y=Buffer.from(h);return x.length===y.length&&crypto.timingSafeEqual(x,y);};
  const tokenOf=r=>(r.headers.authorization||'').replace('Bearer ','')||(r.headers.cookie||'').match(/e5_token=([a-f0-9]+)/)?.[1];
- const isAdm=u=>!!u.is_admin||ADM().includes(String(u.nick).toLowerCase());
- const who=async r=>{await ready;const t=tokenOf(r);if(!t)return null;const [u]=await q('SELECT u.id,u.nick,u.is_admin FROM sessions s JOIN users u ON u.id=s.user_id WHERE token=$1',[t]);if(!u)return null;u.admin=isAdm(u);u.club_id=[...G.ST.clubs].find(([,c])=>c.manager_id===u.id)?.[0]||null;return u;};
+ const isAdm=u=>RL.roleOf(u)==='admin';
+ const who=async r=>{await ready;const t=tokenOf(r);if(!t)return null;const [u]=await q('SELECT u.id,u.nick,u.is_admin,u.role FROM sessions s JOIN users u ON u.id=s.user_id WHERE token=$1',[t]);if(!u)return null;u.role=RL.roleOf(u);u.fixed=RL.isFixed(u.nick);u.admin=u.role==='admin';u.mod=RL.can(u,'moderador');u.club_id=[...G.ST.clubs].find(([,c])=>c.manager_id===u.id)?.[0]||null;return u;};
  const auth=(r,s,n)=>who(r).then(u=>{if(!u)return s.status(401).json({error:'Faça login'});r.user=u;n();}).catch(e=>s.status(500).json({error:'Erro interno'}));
- const admin=(r,s,n)=>auth(r,s,()=>r.user.admin?n():s.status(403).json({error:'Só administradores'}));
+ // cargos: need('moderador') / need('admin') checam no servidor (roles.js); reusar nas próximas rotas (ex.: aba de campeonatos = admin)
+ const need=RL.guard(auth),admin=need('admin'),mod=need('moderador');
  const login=async(s,uid)=>{const t=crypto.randomBytes(24).toString('hex');await q('INSERT INTO sessions(token,user_id) VALUES($1,$2)',[t,uid]);s.setHeader('Set-Cookie',`e5_token=${t}; Path=/; HttpOnly; SameSite=Lax; Secure; Max-Age=31536000`);return t;};
  // conta do admin padrão (Robshow) criada na subida com ADMIN_PIN; apelidos de admin não podem ser cadastrados pela tela
  ready.then(async()=>{const pin=process.env.ADMIN_PIN;if(!pin)return console.warn('ADMIN_PIN ausente: conta Robshow não criada automaticamente');
-  for(const nick of ['Robshow']){const [u]=await q('SELECT id FROM users WHERE lower(nick)=lower($1)',[nick]);if(!u){await q('INSERT INTO users(nick,pass_hash,is_admin) VALUES($1,$2,true)',[nick,await hash(String(pin))]);console.log('Conta admin criada:',nick);}}}).catch(e=>console.error('admin seed',e.message));
+  for(const nick of ['Robshow']){const [u]=await q('SELECT id FROM users WHERE lower(nick)=lower($1)',[nick]);if(!u){await q('INSERT INTO users(nick,pass_hash,is_admin,role) VALUES($1,$2,true,$3)',[nick,await hash(String(pin)),'admin']);console.log('Conta admin criada:',nick);}}}).catch(e=>console.error('admin seed',e.message));
  app.post('/api/auth/register',wrap(async(r,s)=>{await ready;const {nick,pin}=r.body||{};
   if(!/^[\wÀ-ú .-]{3,20}$/.test(nick||''))throw fail('Apelido de 3 a 20 caracteres');if(!pin||String(pin).length<4)throw fail('PIN com pelo menos 4 caracteres');
   if(ADM().includes(nick.trim().toLowerCase()))throw fail('Apelido reservado',409);
@@ -22,7 +23,7 @@ module.exports=(app,G,SE)=>{const {q,tx,fail,ready,X,CFG}=G;
  app.post('/api/auth/login',wrap(async(r,s)=>{await ready;const {nick,pin}=r.body||{};const [u]=await q('SELECT * FROM users WHERE lower(nick)=lower($1)',[String(nick||'').trim()]);
   if(!u||!(await check(String(pin||''),u.pass_hash)))throw fail('Apelido ou PIN inválido',401);s.json({user:{id:u.id,nick:u.nick},token:await login(s,u.id)});}));
  app.post('/api/auth/logout',wrap(async(r,s)=>{await q('DELETE FROM sessions WHERE token=$1',[tokenOf(r)||'']);s.setHeader('Set-Cookie','e5_token=; Path=/; Max-Age=0');s.json({ok:1});}));
- app.get('/api/me',auth,wrap(async(r,s)=>{const u=r.user;let fin=null;if(u.club_id)fin=await G.finances(G.pool,u.club_id);s.json({user:{id:u.id,nick:u.nick,admin:u.admin},club_id:u.club_id,club:u.club_id?G.clubName(u.club_id):null,finances:fin});}));
+ app.get('/api/me',auth,wrap(async(r,s)=>{const u=r.user;let fin=null;if(u.club_id)fin=await G.finances(G.pool,u.club_id);s.json({user:{id:u.id,nick:u.nick,admin:u.admin,role:u.role,fixed:u.fixed,mod:u.mod},club_id:u.club_id,club:u.club_id?G.clubName(u.club_id):null,finances:fin});}));
  // ---------- leitura ----------
  const mgrNick=async()=>new Map((await q('SELECT id,nick FROM users')).map(u=>[u.id,u.nick]));
  app.get('/api/state',wrap(async(r,s)=>{await ready;await G.load();const g=G.ST.g;const md=SE.MD();const nx=(await q('SELECT md,min(kickoff) k FROM matches WHERE season=$1 AND NOT played GROUP BY md ORDER BY md LIMIT 1',[g.season]))[0];
@@ -120,23 +121,23 @@ module.exports=(app,G,SE)=>{const {q,tx,fail,ready,X,CFG}=G;
    if(G.sqSize(cid)>=CFG.squad.max)throw fail(`Elenco cheio (máx. ${CFG.squad.max})`);const f=await G.finances(c,cid);if(f.available<amount)throw fail(`Verba insuficiente: disponível ${X.fmt(f.available)}`);
    await c.query('INSERT INTO auction_bids(lot_id,club_id,user_id,amount) VALUES($1,$2,$3,$4)',[l.id,cid,r.user.id,amount]);await G.bump(c);});s.json({ok:1});}));
  // ---------- admin: leilão com jogadores de toda a base FC27 ----------
- app.get('/api/admin/fc27',admin,wrap(async(r,s)=>{await G.load();const Q=r.query;const w=[],a=[];
+ app.get('/api/admin/fc27',mod,wrap(async(r,s)=>{await G.load();const Q=r.query;const w=[],a=[];
   if(Q.q){w.push('p.name LIKE ?');a.push('%'+Q.q+'%');}if(Q.club){w.push('c.name LIKE ?');a.push('%'+Q.club+'%');}if(Q.pos){w.push('p.primary_position=?');a.push(Q.pos);}
   if(Q.minOvr){w.push('p.overall>=?');a.push(+Q.minOvr);}if(Q.maxOvr){w.push('p.overall<=?');a.push(+Q.maxOvr);}if(Q.women!=='1')w.push("p.gender='Homem'");
   const rows=G.uni.prepare(`SELECT p.id FROM players p LEFT JOIN clubs c ON c.id=p.club_id ${w.length?'WHERE '+w.join(' AND '):''} ORDER BY p.overall DESC LIMIT 100`).all(...a);
   const lots=new Set((await q("SELECT player_id FROM auction_lots WHERE status IN ('pending','open')")).map(x=>x.player_id));const N=await mgrNick();
   s.json(rows.map(x=>{const p=G.pub(G.rec(x.id));const cid=G.clubOf(x.id);const m=G.ST.clubs.get(cid)?.manager_id;return {...p,stats:undefined,in_game:G.isGame(cid),manager:m?N.get(m):null,in_lot:lots.has(x.id),suggested_min:Math.max(CFG.auction.min_bid_floor,Math.round(p.market_value*CFG.auction.min_bid_pct/1e5)*1e5)};}));}));
- app.post('/api/admin/auction/lots',admin,wrap(async(r,s)=>{const p=G.rec(r.body?.player_id);if(!p)throw fail('Jogador não encontrado');
+ app.post('/api/admin/auction/lots',mod,wrap(async(r,s)=>{const p=G.rec(r.body?.player_id);if(!p)throw fail('Jogador não encontrado');
   const min=Math.round(+r.body?.min_bid||Math.max(CFG.auction.min_bid_floor,Math.round(p.market_value*CFG.auction.min_bid_pct/1e5)*1e5));if(!(min>0))throw fail('Lance mínimo inválido');
   await tx(async c=>{if(await inLot(c,p.id))throw fail('Jogador já está em um lote');const from=G.clubOf(p.id);const st=G.ST.g.auction_open?'open':'pending';
    await c.query('INSERT INTO auction_lots(season,player_id,from_club,min_bid,status,created_by) VALUES($1,$2,$3,$4,$5,$6)',[G.ST.g.season,p.id,from,min,st,r.user.id]);
    await c.query("UPDATE offers SET status='expired',msg='Jogador foi para o leilão',updated_at=now() WHERE player_id=$1 AND status IN ('pending','countered')",[p.id]);
    await G.log(c,`🔨 ${p.name} (${G.clubName(from)}) entrou no leilão${st==='open'?' aberto':' (próximo leilão)'} · lance mínimo ${X.fmt(min)}.`,r.user.id);await G.bump(c);});s.json({ok:1});}));
- app.delete('/api/admin/auction/lots/:id',admin,wrap(async(r,s)=>{await tx(async c=>{const [l]=(await c.query('SELECT * FROM auction_lots WHERE id=$1 FOR UPDATE',[+r.params.id])).rows;if(!l||!['pending','open'].includes(l.status))throw fail('Lote não pode ser removido');
+ app.delete('/api/admin/auction/lots/:id',mod,wrap(async(r,s)=>{await tx(async c=>{const [l]=(await c.query('SELECT * FROM auction_lots WHERE id=$1 FOR UPDATE',[+r.params.id])).rows;if(!l||!['pending','open'].includes(l.status))throw fail('Lote não pode ser removido');
   if((await c.query('SELECT 1 FROM auction_bids WHERE lot_id=$1',[l.id])).rows.length)throw fail('Lote com lance não pode ser removido');await c.query("UPDATE auction_lots SET status='removed' WHERE id=$1",[l.id]);await G.log(c,`🗑️ Lote de ${G.rec(l.player_id)?.name} removido.`,r.user.id);await G.bump(c);});s.json({ok:1});}));
- app.post('/api/admin/auction/open',admin,wrap(async(r,s)=>{await tx(async c=>{const n=(await c.query("UPDATE auction_lots SET status='open' WHERE status='pending' AND season=$1",[G.ST.g.season])).rowCount;if(!n&&!(await c.query("SELECT 1 FROM auction_lots WHERE status='open'")).rows.length)throw fail('Nenhum lote para abrir');
+ app.post('/api/admin/auction/open',mod,wrap(async(r,s)=>{await tx(async c=>{const n=(await c.query("UPDATE auction_lots SET status='open' WHERE status='pending' AND season=$1",[G.ST.g.season])).rowCount;if(!n&&!(await c.query("SELECT 1 FROM auction_lots WHERE status='open'")).rows.length)throw fail('Nenhum lote para abrir');
   await c.query('UPDATE game_state SET auction_open=true WHERE id=1');await G.log(c,`🔔 Leilão aberto (${n} lotes).`,r.user.id);await G.bump(c);});await G.load();s.json({ok:1});}));
- app.post('/api/admin/auction/close',admin,wrap(async(r,s)=>{const res=await tx(async c=>{const ls=(await c.query("SELECT * FROM auction_lots WHERE status='open' FOR UPDATE")).rows;const sold=[];
+ app.post('/api/admin/auction/close',mod,wrap(async(r,s)=>{const res=await tx(async c=>{const ls=(await c.query("SELECT * FROM auction_lots WHERE status='open' FOR UPDATE")).rows;const sold=[];
   for(const l of ls){const bids=(await c.query('SELECT * FROM auction_bids WHERE lot_id=$1 ORDER BY amount DESC,id',[l.id])).rows;const p=G.rec(l.player_id);let done=false;
    for(const b of bids){const [cb]=(await c.query('SELECT budget FROM club_state WHERE club_id=$1',[b.club_id])).rows;if(+cb.budget<+b.amount)continue;
     await G.move(c,{pid:l.player_id,from:l.from_club,to:b.club_id,fee:+b.amount,kind:'leilão'});await c.query("UPDATE auction_lots SET status='sold',winner_club=$2,price=$3 WHERE id=$1",[l.id,b.club_id,b.amount]);sold.push(`${p.name} → ${G.clubName(b.club_id)} (${X.fmt(+b.amount)})`);done=true;break;}
@@ -144,11 +145,17 @@ module.exports=(app,G,SE)=>{const {q,tx,fail,ready,X,CFG}=G;
   await c.query('UPDATE game_state SET auction_open=false WHERE id=1');await G.log(c,`🔨 Leilão encerrado. ${sold.length?'Arrematados: '+sold.join('; '):'Nenhum lote arrematado'}.`,r.user.id);await G.bump(c);return {sold};});await G.load();s.json(res);}));
  // ---------- admin: mercado e temporada ----------
  const confirmWord=(r,w)=>{if(String(r.body?.confirm||'').trim().toUpperCase()!==w)throw fail(`Digite ${w} para confirmar`);};
- app.post('/api/admin/market',admin,wrap(async(r,s)=>{const open=!!r.body?.open;await q('UPDATE game_state SET market_open=$1,version=version+1 WHERE id=1',[open]);await G.log(null,open?'🟢 Mercado aberto pela administração.':'🔴 Mercado fechado pela administração.',r.user.id);await G.load();s.json({ok:1});}));
+ app.post('/api/admin/market',mod,wrap(async(r,s)=>{const open=!!r.body?.open;await q('UPDATE game_state SET market_open=$1,version=version+1 WHERE id=1',[open]);await G.log(null,open?'🟢 Mercado aberto pela administração.':'🔴 Mercado fechado pela administração.',r.user.id);await G.load();s.json({ok:1});}));
  app.post('/api/admin/season/auto',admin,wrap(async(r,s)=>{const on=!!r.body?.on;await q('UPDATE game_state SET auto=$1,version=version+1 WHERE id=1',[on]);await G.log(null,on?'⏱️ Agenda automática LIGADA (jogos nos horários do calendário).':'⏸️ Agenda automática desligada.',r.user.id);await G.load();s.json({ok:1});}));
  app.post('/api/admin/season/schedule',admin,wrap(async(r,s)=>{await G.load();if(!['pre','running'].includes(G.ST.g.status))throw fail('Temporada encerrada: use Começar nova temporada');await tx(c=>SE.schedule(c,r.body?.start_date,r.user.id));await G.load();s.json({ok:1});}));
- app.post('/api/admin/season/next',admin,wrap(async(r,s)=>{const x=await SE.next(r.user.id);s.json(x||{finished:true});}));
+ app.post('/api/admin/season/next',mod,wrap(async(r,s)=>{const x=await SE.next(r.user.id);s.json(x||{finished:true});}));
  app.post('/api/admin/season/new',admin,wrap(async(r,s)=>{confirmWord(r,'NOVA TEMPORADA');await SE.newSeason(r.user.id,r.body?.start_date||null);s.json({ok:1});}));
  app.post('/api/admin/season/reset',admin,wrap(async(r,s)=>{confirmWord(r,'RESETAR');await SE.reset(r.user.id,r.body?.start_date||null);s.json({ok:1});}));
- app.get('/api/admin/users',admin,wrap(async(r,s)=>s.json((await q('SELECT id,nick,is_admin,created_at FROM users ORDER BY id')).map(u=>({...u,admin:isAdm(u),club:(cid=>cid?G.clubName(cid):null)([...G.ST.clubs].find(([,c])=>c.manager_id===u.id)?.[0])})))));
+ app.get('/api/admin/users',admin,wrap(async(r,s)=>s.json((await q('SELECT id,nick,is_admin,role,created_at FROM users ORDER BY id')).map(u=>({id:u.id,nick:u.nick,created_at:u.created_at,role:RL.roleOf(u),fixed:RL.isFixed(u.nick),admin:isAdm(u),club:(cid=>cid?G.clubName(cid):null)([...G.ST.clubs].find(([,c])=>c.manager_id===u.id)?.[0])})))));
+ // cargos: só admin promove/rebaixa (membro/moderador/admin); admins fixos (Robshow + ADMIN_APELIDOS) não mudam
+ app.post('/api/admin/users/:id/role',admin,wrap(async(r,s)=>{const role=String(r.body?.role||'');if(!RL.ROLES.includes(role))throw fail('Cargo inválido (membro, moderador ou admin)');
+  const [u]=await q('SELECT id,nick,role,is_admin FROM users WHERE id=$1',[+r.params.id]);if(!u)throw fail('Usuário não encontrado',404);
+  if(RL.isFixed(u.nick))throw fail('Administrador fixo: não pode mudar de cargo',403);
+  await q('UPDATE users SET role=$2,is_admin=$3 WHERE id=$1',[u.id,role,role==='admin']);
+  await G.log(null,`👤 ${u.nick} agora é ${RL.LABEL[role].toLowerCase()} (por ${r.user.nick}).`,r.user.id);s.json({id:u.id,nick:u.nick,role});}));
 };
