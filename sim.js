@@ -33,10 +33,17 @@ const GW={ATA:1,SA:.85,PD:.75,PE:.75,MEI:.45,MD:.35,ME:.35,MC:.25,VOL:.12,ZAG:.1
 const AW={MEI:1,PD:.9,PE:.9,MD:.8,ME:.8,SA:.7,MC:.65,ATA:.5,LD:.45,LE:.45,ADD:.45,ADE:.45,VOL:.35,ZAG:.1,GOL:.02};
 const HOME_ADV=1.12,BASE=1.3;
 // form = pontos nos últimos 5 jogos (0..15) ou null
+// Peso do over (Robson 23/11/2026, "aumentar um pouco"): separa o nível de gols do jogo (média das duas vantagens
+// ataque×defesa, inalterado) da vantagem relativa entre os times (meia-diferença). A vantagem relativa é multiplicada por
+// TUNE.gain e saturada em ±TUNE.cap (tanh): diferenças pequenas/médias de over pesam mais, diferenças grandes quase não
+// mudam, então o mais fraco continua vencendo com frequência. Antes: gain=1, cap=Infinity (motor anterior).
+const TUNE={gain:2.1,cap:0.58};
+const rel=x=>isFinite(TUNE.cap)?TUNE.cap*Math.tanh(TUNE.gain*x/TUNE.cap):TUNE.gain*x;
 function expected(sH,sA,formH,formA){const fm=f=>f==null?1:0.95+0.1*(f/15);
  const atk=s=>0.65*s.ATT+0.35*s.MID,dfn=s=>0.6*s.DEF+0.2*s.MID+0.2*s.GK;
- const xH=BASE*Math.exp((atk(sH)-dfn(sA))/16)*HOME_ADV*fm(formH)/fm(formA);
- const xA=BASE*Math.exp((atk(sA)-dfn(sH))/16)/HOME_ADV*fm(formA)/fm(formH);
+ const eH=(atk(sH)-dfn(sA))/16,eA=(atk(sA)-dfn(sH))/16,lvl=(eH+eA)/2,r=rel((eH-eA)/2);
+ const xH=BASE*Math.exp(lvl+r)*HOME_ADV*fm(formH)/fm(formA);
+ const xA=BASE*Math.exp(lvl-r)/HOME_ADV*fm(formA)/fm(formH);
  return [Math.max(.15,Math.min(xH,4.5)),Math.max(.15,Math.min(xA,4.5))];}
 // Notas individuais estilo Sofascore: estatísticas por jogador coerentes com placar, gols/assistências, posição, atributos e minutos
 const PR={GK:{pa:16,sh:0,dr:0,tk:.1,it:.2,cl:.8,rc:2.5,ft:.15},DEF:{pa:48,sh:.5,dr:.5,tk:2.2,it:1.6,cl:3.6,rc:5,ft:1.1},MID:{pa:52,sh:1.2,dr:1.3,tk:2,it:1.1,cl:.9,rc:5.5,ft:1.2},ATT:{pa:28,sh:2.3,dr:2.4,tk:.8,it:.4,cl:.4,rc:3,ft:1}};
@@ -111,4 +118,4 @@ function playMatch(H,A,r=Math.random){ // H/A = {club_id,xi,bench?,form,alt?}
 function schedule(ids,r=Math.random){const t=[...ids];for(let i=t.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[t[i],t[j]]=[t[j],t[i]];}if(t.length%2)t.push(null);
  const n=t.length,rounds=[];let arr=[...t];for(let k=0;k<n-1;k++){const m=[];for(let i=0;i<n/2;i++){const a=arr[i],b=arr[n-1-i];if(a!=null&&b!=null)m.push(k%2&&i===0?[b,a]:[a,b]);}rounds.push(m);arr=[arr[0],arr[n-1],...arr.slice(1,n-1)];}
  return rounds.concat(rounds.map(m=>m.map(([a,b])=>[b,a])));}
-module.exports={FORMATIONS,autoXI,strength,alignStats,strengthLive,teamStrength,applyShape,expected,playMatch,schedule,sec};
+module.exports={TUNE,FORMATIONS,autoXI,strength,alignStats,strengthLive,teamStrength,applyShape,expected,playMatch,schedule,sec};

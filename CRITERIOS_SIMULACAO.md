@@ -24,7 +24,7 @@ A temporada **não é simulada de uma vez**. O dono da sala clica em "Simular pr
 
 ## 4. Gols esperados (xG)
 - Base: 1,3 gol por time.
-- `xG = 1,3 × e^((ofensivo do time − defensivo do adversário) / 16)`.
+- `xG = 1,3 × e^((ofensivo do time − defensivo do adversário) / 16)` — no Europa 5 Ligas (23/11/2026) a parte relativa entre os dois times passa por `0,58 × tanh(2,1 × x / 0,58)` (peso do over maior; ver DECISOES.md).
 - **Mando de campo**: mandante ×1,12, visitante ÷1,12.
 - **Forma recente** (pontos nos últimos 5 jogos): de ×0,95 (nenhum ponto) até ×1,05 (5 vitórias).
 - Limites: entre 0,15 e 4,5 gols esperados.

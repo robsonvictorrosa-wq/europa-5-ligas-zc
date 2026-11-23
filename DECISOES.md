@@ -35,3 +35,17 @@ Prêmios por jogo/posição (`prizes_per_match` = 0), janelas automáticas do me
 - Cores derivadas da arte enviada pelo Robson (preto + prata), estrutura de abas igual ao Libertadores ZC.
 - Setas de competição em Jogos/Tabela/Estatísticas percorrem ligas, copas europeias (stub até o formato existir) e chaveamentos das copas nacionais; mata-mata europeu entra no mesmo ciclo quando existir.
 - Calendário montado a partir das partidas do banco + fases de copa pendentes (data prevista), atualizando automaticamente a cada avanço (poll de 30 s pela versão do estado).
+
+## Peso do over na simulação (Robson 23/11/2026: "aumentar um pouco")
+- Onde: `sim.js` → `expected()`. Antes: `xG = 1,3 × e^((ataque − defesa adversária)/16) × mando`.
+- Agora: o expoente de cada time é separado em **nível do jogo** (média das duas vantagens, mantém a média de gols) e **vantagem relativa** (meia-diferença entre as duas). A vantagem relativa vira `0,58 × tanh(2,1 × v / 0,58)` (`TUNE` em `sim.js`): diferenças pequenas e médias de over pesam ~2x mais; diferenças grandes saturam, então o azarão continua vencendo ~10% com 10 de over a menos. `gain=1, cap=Infinity` reproduz exatamente o motor anterior.
+- Medição (`node scripts/bench-over.js 20000`): pares reais de clubes do FC27 com diferença de over do time (média dos 11) ≈ 2, 5 e 10; ~20 mil jogos por faixa, metade com o forte em casa e metade fora; mesma semente antes e depois.
+
+| Dif. de over | Antes V/E/D do mais forte | Depois V/E/D do mais forte | Gols/jogo antes → depois |
+|---|---|---|---|
+| +2 | 45,0 / 24,8 / 30,2 | 52,4 / 23,3 / 24,3 | 2,83 → 2,87 |
+| +5 | 56,8 / 22,4 / 20,8 | 66,1 / 19,5 / 14,4 | 2,94 → 3,09 |
+| +10 | 75,4 / 14,7 / 9,9 | 74,9 / 15,1 / 10,0 | 3,48 → 3,44 |
+
+- Média de gols num turno completo das 5 ligas: 2,97 → 3,03.
+- Com +10 o resultado praticamente não muda: aumentar o peso ali derrubaria a vitória do mais fraco abaixo de 10%, que foi o limite pedido.
