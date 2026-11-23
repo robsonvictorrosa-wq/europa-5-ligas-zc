@@ -14,7 +14,13 @@ Distribuição: € 0 (1 clube), 50 (5), 100 (3), 150 (5), 200 (8), 250 (13), 30
 - Champions: 7 por país (35). Europa League e Conference: 6 + 6 nas ligas de 20, 5 + 5 nas de 18 (28 + 28).
 - Sobra 1 clube por liga (5 no total). Pelo over: o de maior over vai à Champions (36), os 2 seguintes à Europa League (30) e os 2 últimos à Conference (30).
 - Temporada 1: ordem dentro de cada liga pelo over do time. Configuração em `config/europa.json` → `europe`.
-- Temporadas seguintes: hoje pela classificação final da liga (`next_seasons_rank_by: "standings"`), **pendente de confirmação**.
+- **Temporada 2 em diante (Robson 23/11/2026):**
+  1. Vagas-base pela classificação final da liga da temporada anterior, com a mesma divisão por país (Champions 7; EL/Conference 6+6 nas ligas de 20, 5+5 nas de 18). As 5 sobras (últimos colocados) completam as vagas pelo over, como na temporada 1.
+  2. Bônus de campeão (`champion_bonus`, nesta ordem): campeão da copa nacional de cada país → Champions; campeão da Europa League → Champions; campeão da Conference → Europa League.
+  3. Quem sobe desloca o pior colocado da copa de cima (maior posição na liga; empate: menor over) um degrau para baixo, em cascata até a copa de onde o campeão saiu. Totais ficam 36/30/30 e os 96 clubes jogam alguma copa europeia. Campeões que subiram por bônus não são deslocados.
+  4. Se o campeão já está nessa copa ou numa melhor pela liga, fica onde está e nada muda.
+  5. Bônus da copa nacional valem a partir da temporada 2. Bônus de Europa League/Conference só quando essas copas existirem (etapa 2: `europa.js` → `FORMAT.champions`).
+  Testes: `test/run.js` (unidade com cascata; E2E completo confere 36/30/30, 96 clubes e os campeões das copas nacionais na Champions).
 - Formato das copas (fases, sorteio, datas): **etapa 2**. Ponto de encaixe: `europa.js` (`FORMAT`) e `comps.matchdays`.
 
 ## Data de início (Robson 23/11)

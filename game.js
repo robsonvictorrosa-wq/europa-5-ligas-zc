@@ -42,13 +42,17 @@ module.exports=function Game(uni,url){
   console.log('Postgres OK · temporada',ST.g.season,ST.g.status);})();
  // ---------- copas europeias (classificação) ----------
  function leaguesWithClubs(){return LEAGUES.map(l=>({id:l.id,key:l.key,name:l.name,clubs:CLUBS.filter(c=>c.league_id===l.id).map(c=>({id:c.id,name:c.name,overall:c.overall}))}));}
- async function saveEuro(c,season,rankBy){let rankings=null;
+ async function saveEuro(c,season,rankBy){let rankings=null,champions=null;
   if(rankBy==='standings'){rankings=new Map();for(const l of LEAGUES){const ms=(await c.query("SELECT * FROM matches WHERE season=$1 AND comp='league' AND league_id=$2",[season-1,l.id])).rows;const ids=CLUBS.filter(x=>x.league_id===l.id).map(x=>x.id);rankings.set(l.id,C.standings(ms,ids,clubName).map(t=>t.club_id));}}
-  const Q=EU.qualify(leaguesWithClubs(),{rankBy,rankings,overOf:rankBy==='over'?(id=>teamOver(id)):null});
+  // bônus de campeão (temporada 2+): campeões da copa nacional da temporada anterior + campeões europeus (quando as copas existirem)
+  if(season>=(CFG.europe.champion_bonus_from_season||2)&&(CFG.europe.champion_bonus||[]).length){const cups=(await c.query("SELECT winner FROM matches WHERE season=$1 AND comp='cup' AND stage='final' AND winner IS NOT NULL",[season-1])).rows.map(r=>r.winner);
+   const eu=await EU.FORMAT.champions(c,season-1)||{};champions={national_cup:cups,UEL:eu.UEL??null,UECL:eu.UECL??null};}
+  const Q=EU.qualify(leaguesWithClubs(),{rankBy,rankings,overOf:id=>teamOver(id),champions});
   await c.query('DELETE FROM euro_slots WHERE season=$1',[season]);
-  for(const k in Q)for(const x of Q[k])await c.query('INSERT INTO euro_slots VALUES($1,$2,$3,$4,$5,$6)',[season,k,x.club_id,x.league_id,x.pos,x.via]);}
+  for(const k of EU.TIERS)for(const x of Q[k])await c.query('INSERT INTO euro_slots VALUES($1,$2,$3,$4,$5,$6)',[season,k,x.club_id,x.league_id,x.pos,x.via]);
+  return Q;}
  async function europe(season=ST.g.season){const rows=await q('SELECT * FROM euro_slots WHERE season=$1',[season]);
-  return {season,format:EU.FORMAT,rule:CFG._doc_europe,competitions:EU.COMPS.map(c=>({...c,clubs:rows.filter(r=>r.comp===c.key).map(r=>({club_id:r.club_id,name:clubName(r.club_id),league:LG.get(r.league_id)?.name,pos:r.pos,via:r.via,over:teamOver(r.club_id)})).sort((a,b)=>b.over-a.over)}))};}
+  return {season,format:EU.FORMAT,rule:CFG._doc_europe,rule_next:CFG.europe._doc_next,competitions:EU.COMPS.map(c=>({...c,clubs:rows.filter(r=>r.comp===c.key).map(r=>({club_id:r.club_id,name:clubName(r.club_id),league:LG.get(r.league_id)?.name,pos:r.pos,via:r.via,over:teamOver(r.club_id)})).sort((a,b)=>b.over-a.over)}))};}
  // ---------- snapshot / reset ----------
  async function snapshot(c,season){const cs=(await c.query('SELECT club_id,budget FROM club_state')).rows;const ps=(await c.query('SELECT * FROM player_state')).rows;
   const lots=(await c.query('SELECT * FROM auction_lots WHERE season=$1',[season])).rows;const bids=(await c.query('SELECT b.* FROM auction_bids b JOIN auction_lots l ON l.id=b.lot_id WHERE l.season=$1',[season])).rows;

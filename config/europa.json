@@ -2,45 +2,162 @@
   "_doc": "Europa 5 Grandes Ligas ZC – configuração central. Valores em euros. Horários de Brasília.",
   "name": "Europa 5 Grandes Ligas ZC",
   "leagues": [
-    {"key": "ENG", "fc27": "Premier League", "name": "Premier League", "country": "Inglaterra", "cup": "FA Cup ZC"},
-    {"key": "ESP", "fc27": "LALIGA EA SPORTS", "name": "LaLiga", "country": "Espanha", "cup": "Copa del Rey ZC"},
-    {"key": "ITA", "fc27": "Serie A Enilive", "name": "Serie A", "country": "Itália", "cup": "Coppa Italia ZC"},
-    {"key": "GER", "fc27": "Bundesliga", "name": "Bundesliga", "country": "Alemanha", "cup": "DFB-Pokal ZC"},
-    {"key": "FRA", "fc27": "Ligue 1 McDonald's", "name": "Ligue 1", "country": "França", "cup": "Coupe de France ZC"}
+    {
+      "key": "ENG",
+      "fc27": "Premier League",
+      "name": "Premier League",
+      "country": "Inglaterra",
+      "cup": "FA Cup ZC"
+    },
+    {
+      "key": "ESP",
+      "fc27": "LALIGA EA SPORTS",
+      "name": "LaLiga",
+      "country": "Espanha",
+      "cup": "Copa del Rey ZC"
+    },
+    {
+      "key": "ITA",
+      "fc27": "Serie A Enilive",
+      "name": "Serie A",
+      "country": "Itália",
+      "cup": "Coppa Italia ZC"
+    },
+    {
+      "key": "GER",
+      "fc27": "Bundesliga",
+      "name": "Bundesliga",
+      "country": "Alemanha",
+      "cup": "DFB-Pokal ZC"
+    },
+    {
+      "key": "FRA",
+      "fc27": "Ligue 1 McDonald's",
+      "name": "Ligue 1",
+      "country": "França",
+      "cup": "Coupe de France ZC"
+    }
   ],
   "_doc_budget": "Verba inicial inversamente proporcional ao over do time (média dos 11 maiores overs do elenco FC27). verba = min + (max - min) * (overMax - over) / (overMax - overMin), arredondada para múltiplos de 'step'. Mesma escala da Libertadores ZC (0 a 500 mi, degraus de 50 mi). overMax/overMin = maior e menor over entre os 96 clubes.",
-  "budget": {"min": 0, "max": 500000000, "step": 50000000},
+  "budget": {
+    "min": 0,
+    "max": 500000000,
+    "step": 50000000
+  },
   "_doc_team_over": "Over do time = média dos 11 maiores overs do elenco (mesma regra da base).",
   "_doc_league": "Liga: todos contra todos em turno e returno (20 clubes = 38 rodadas; 18 clubes = 34). Turno pelo método de Berger (mando alternado, nunca 3 seguidos) e returno espelhado.",
-  "league": {"double_round_robin": true},
+  "league": {
+    "double_round_robin": true
+  },
   "_doc_cup": "Copa nacional: só clubes da própria liga, mata-mata em jogo único (pênaltis no empate), final em campo neutro. Fase preliminar com os clubes de menor over para chegar a 16 (20 clubes: 8 jogam, 12 folgam; 18 clubes: 4 jogam, 14 folgam). Chaves sorteadas a cada fase. 'after_league_round' = rodada da liga depois da qual a fase da copa é disputada.",
-  "cup": {"rounds": [
-    {"stage": "prelim", "name": "Fase preliminar", "after_league_round": 4},
-    {"stage": "r16", "name": "Oitavas de final", "after_league_round": 10},
-    {"stage": "qf", "name": "Quartas de final", "after_league_round": 18},
-    {"stage": "sf", "name": "Semifinal", "after_league_round": 26},
-    {"stage": "final", "name": "Final", "after_league_round": 34}
-  ]},
+  "cup": {
+    "rounds": [
+      {
+        "stage": "prelim",
+        "name": "Fase preliminar",
+        "after_league_round": 4
+      },
+      {
+        "stage": "r16",
+        "name": "Oitavas de final",
+        "after_league_round": 10
+      },
+      {
+        "stage": "qf",
+        "name": "Quartas de final",
+        "after_league_round": 18
+      },
+      {
+        "stage": "sf",
+        "name": "Semifinal",
+        "after_league_round": 26
+      },
+      {
+        "stage": "final",
+        "name": "Final",
+        "after_league_round": 34
+      }
+    ]
+  },
   "_doc_calendar": "Cada 'data de jogos' (rodada da liga ou fase de copa) ocupa um horário. A data de início é escolhida pelo admin no painel (sem data fixa). Padrão: 2 horários por dia (12:00 e 19:00 de Brasília).",
-  "calendar": {"slots": ["12:00", "19:00"], "timezone_offset": "-03:00"},
+  "calendar": {
+    "slots": [
+      "12:00",
+      "19:00"
+    ],
+    "timezone_offset": "-03:00"
+  },
   "_doc_europe": "Vagas aprovadas pelo Robson em 23/11/2026: Champions 7 por país (35); Europa League e Conference 6+6 nas ligas de 20 e 5+5 nas de 18 (28+28). O 1 clube que sobra em cada liga (5 no total) completa as vagas pelo over: o de maior over vai à Champions (36), os 2 seguintes à Europa League (30) e os 2 últimos à Conference (30). Temporada 1: ordem dentro de cada liga pelo over do time. Formato das copas: a definir (etapa 2).",
   "europe": {
     "competitions": [
-      {"key": "UCL", "name": "Champions League ZC", "size": 36},
-      {"key": "UEL", "name": "Europa League ZC", "size": 30},
-      {"key": "UECL", "name": "Conference League ZC", "size": 30}
+      {
+        "key": "UCL",
+        "name": "Champions League ZC",
+        "size": 36
+      },
+      {
+        "key": "UEL",
+        "name": "Europa League ZC",
+        "size": 30
+      },
+      {
+        "key": "UECL",
+        "name": "Conference League ZC",
+        "size": 30
+      }
     ],
     "quota_by_league_size": {
-      "20": {"UCL": 7, "UEL": 6, "UECL": 6},
-      "18": {"UCL": 7, "UEL": 5, "UECL": 5}
+      "20": {
+        "UCL": 7,
+        "UEL": 6,
+        "UECL": 6
+      },
+      "18": {
+        "UCL": 7,
+        "UEL": 5,
+        "UECL": 5
+      }
     },
-    "leftover_order": ["UCL", "UEL", "UEL", "UECL", "UECL"],
+    "leftover_order": [
+      "UCL",
+      "UEL",
+      "UEL",
+      "UECL",
+      "UECL"
+    ],
     "leftover_rank_by": "over",
     "season1_rank_by": "over",
     "next_seasons_rank_by": "standings",
-    "_doc_next": "Temporadas seguintes: 'standings' = classificação final da liga da temporada anterior (PENDENTE de confirmação do Robson). Troque para 'over' se ele preferir manter pelo over."
+    "_doc_next": "Temporada 2 em diante (Robson 23/11/2026): vagas-base pela classificação final da liga da temporada anterior, com a mesma divisão por país (sobras pelo over). Depois, bônus de campeão: campeão da copa nacional de cada país -> Champions; campeão da Europa League -> Champions; campeão da Conference -> Europa League. Quem sobe desloca o pior colocado (posição na liga, depois over) da copa de cima um degrau para baixo (em cascata até a copa de onde o campeão saiu), mantendo 36/30/30. Se o campeão já está nessa copa ou numa melhor pela liga, fica onde está e nada muda. Bônus de Europa League/Conference só valem quando essas copas existirem (formato na etapa 2).",
+    "champion_bonus": [
+      {
+        "from": "national_cup",
+        "to": "UCL"
+      },
+      {
+        "from": "UEL",
+        "to": "UCL"
+      },
+      {
+        "from": "UECL",
+        "to": "UEL"
+      }
+    ],
+    "champion_bonus_from_season": 2
   },
-  "auction": {"min_bid_pct": 0.5, "min_bid_floor": 100000, "min_increment": 100000, "max_per_club": 1},
-  "squad": {"max": 32, "min": 16},
-  "prizes_per_match": {"win": 0, "draw": 0, "_doc": "Prêmios por jogo/posição: ainda não definidos para este site (0 = desligado)."}
+  "auction": {
+    "min_bid_pct": 0.5,
+    "min_bid_floor": 100000,
+    "min_increment": 100000,
+    "max_per_club": 1
+  },
+  "squad": {
+    "max": 32,
+    "min": 16
+  },
+  "prizes_per_match": {
+    "win": 0,
+    "draw": 0,
+    "_doc": "Prêmios por jogo/posição: ainda não definidos para este site (0 = desligado)."
+  }
 }
