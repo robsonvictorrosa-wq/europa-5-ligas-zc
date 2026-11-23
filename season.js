@@ -20,7 +20,7 @@ module.exports=G=>{const {q,tx,fail,C,S,TT,CFG,LEAGUES,CLUBS,clubName,log,bump,s
  // monta o time para o motor (escalação automática; táticas da IA da base)
  function team(cid,neutral){let P=G.PLAN.get(cid);if(!P){const sq=squad(cid);const ai=TT.aiPlan(sq,cid);const xi=TT.autoXI(sq,ai.formation);P={sq,xi,bench:sq.filter(p=>!xi.includes(p)),...ai};G.PLAN.set(cid,P);}
   return {club_id:cid,xi:P.xi,bench:P.bench,formation:P.formation,tactics:P.tactics,form:null,neutral:!!neutral};}
- const summary=(r,m)=>({events:r.events.map(e=>({min:e.min,club:e.club,scorer:e.scorer_name,assist:e.assist_name,og:!!e.og,kind:e.kind||null})),xg:r.xg,motm:r.motm?{id:r.motm,name:(G.rec(r.motm)||{}).name}:null,formations:{home:r.tac.home.formation,away:r.tac.away.formation},lineups:r.lineups});
+ const summary=(r,m)=>({events:r.events.map(e=>({min:e.min,club:e.club,scorer:e.scorer_name,scorer_id:e.scorer,assist:e.assist_name,assist_id:e.assist,og:!!e.og,kind:e.kind||null})),pl:(r.appeared||[]).map(([p,cid])=>[p.id,cid,r.ratings?.[p.id]??null,r.pstats?.[p.id]?.min??0]),xg:r.xg,motm:r.motm?{id:r.motm,name:(G.rec(r.motm)||{}).name}:null,formations:{home:r.tac.home.formation,away:r.tac.away.formation},lineups:r.lineups});
  async function play(c,m){const r=S.playMatch(team(m.home,m.neutral),team(m.away,m.neutral));let winner=null,pens=null;
   if(m.comp==='cup'){if(r.hg!==r.ag)winner=r.hg>r.ag?m.home:m.away;else{const p=C.penalties();pens=p.join('-');winner=p[0]>p[1]?m.home:m.away;}}
   await c.query('UPDATE matches SET hg=$2,ag=$3,winner=$4,pens=$5,played=true,details=$6 WHERE id=$1',[m.id,r.hg,r.ag,winner,pens,JSON.stringify(summary(r,m))]);

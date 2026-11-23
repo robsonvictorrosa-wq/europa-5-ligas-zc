@@ -28,3 +28,8 @@ Livre: o admin escolhe no painel. Enquanto nenhum jogo for disputado, a data pod
 
 ## Ainda não definidos (desligados nesta etapa)
 Prêmios por jogo/posição (`prizes_per_match` = 0), janelas automáticas do mercado (o admin abre/fecha), escalação/tática escolhida pelo técnico (todos usam a IA da base), evolução de jogadores, empréstimos, bolão.
+
+## Etapa 3 — visual, setas e calendário (23/11/2026)
+- Cores derivadas da arte enviada pelo Robson (preto + prata), estrutura de abas igual ao Libertadores ZC.
+- Setas de competição em Jogos/Tabela/Estatísticas percorrem ligas, copas europeias (stub até o formato existir) e chaveamentos das copas nacionais; mata-mata europeu entra no mesmo ciclo quando existir.
+- Calendário montado a partir das partidas do banco + fases de copa pendentes (data prevista), atualizando automaticamente a cada avanço (poll de 30 s pela versão do estado).

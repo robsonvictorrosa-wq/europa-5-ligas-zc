@@ -20,3 +20,9 @@ Local (Node 20): `npm ci && node import.js && DATABASE_URL=postgres://... PGSSL=
 Testes: `node test/run.js` (unidade) · E2E com servidor e Postgres descartáveis: `E2E_BASE=http://localhost:3150 E2E_ADMIN_PIN=... node test/run.js` (`E2E_FULL=1` joga a temporada inteira, cria a temporada 2 e reseta).
 
 Arquivos: `server.js` (boot) · `game.js` (universo + estado) · `season.js` (calendário, simulação, copa, nova temporada, reset) · `api.js` (rotas) · `comps.js` (liga, copa, calendário) · `europa.js` (vagas europeias + stub) · `budget.js` (verba inicial) · `config/europa.json` (todas as regras configuráveis) · `public/` (interface).
+
+## Visual e navegação (etapa 3)
+- Paleta preto/prata/branco tirada da arte "ZC Super Modo Carreira League" (`public/logo-arte.jpg`, `logo-mark.png`).
+- Mesma estrutura de abas do Libertadores ZC: Menu, Campeonato, Mercado, Jogos, Tabela, Estatísticas, Calendário, Leilão, Clubes e verbas, Central da liga (admin).
+- Em Jogos, Tabela e Estatísticas as setas ‹ › alternam a competição: 5 ligas → Champions/Europa/Conference → chaveamento das 5 copas nacionais (`GET /api/comps`, `GET /api/stats?comp=`).
+- Aba Calendário (`#/calendario/<clube>/<AAAA-MM>`): grade mensal Dom–Sáb com adversário, Casa/Fora, competição e placar (V/E/D); começa no seu clube, com seletor de time. Gerada dos jogos reais: fases de copa ainda não sorteadas aparecem como "A sortear" e somem se o time for eliminado; a página recarrega sozinha quando a liga avança.

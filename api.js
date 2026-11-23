@@ -38,9 +38,27 @@ module.exports=(app,G,SE)=>{const {q,tx,fail,ready,X,CFG}=G;
   s.json({league:l,cup:l.cup_name,stages:CFG.cup.rounds,matches:ms.map(m=>({...m,home_name:G.clubName(m.home),away_name:G.clubName(m.away),winner_name:m.winner?G.clubName(m.winner):null}))});}));
  app.get('/api/europe',wrap(async(r,s)=>{await ready;s.json(await G.europe(+r.query.season||G.ST.g.season));}));
  app.get('/api/clubs/:id',wrap(async(r,s)=>{await ready;await G.load();const c=G.CL.get(+r.params.id);if(!c)throw fail('Clube não encontrado',404);const N=await mgrNick();
-  const ms=await q('SELECT id,comp,stage,round,md,kickoff,home,away,hg,ag,pens,played FROM matches WHERE season=$1 AND (home=$2 OR away=$2) ORDER BY md',[G.ST.g.season,c.id]);
+  const ms=await q('SELECT id,comp,stage,round,md,kickoff,home,away,hg,ag,pens,winner,played FROM matches WHERE season=$1 AND (home=$2 OR away=$2) ORDER BY md',[G.ST.g.season,c.id]);
   const eu=(await q('SELECT comp FROM euro_slots WHERE season=$1 AND club_id=$2',[G.ST.g.season,c.id]))[0];
-  s.json({...clubRow(c,N),europe:eu?.comp||null,squad:G.squad(c.id).map(G.pub),matches:ms.map(m=>({...m,home_name:G.clubName(m.home),away_name:G.clubName(m.away)}))});}));
+  const cupMs=ms.filter(m=>m.comp==='cup');const out=cupMs.some(m=>m.played&&m.winner!=null&&m.winner!==c.id)||cupMs.some(m=>m.played&&m.pens==null&&m.hg!==m.ag&&((m.home===c.id&&m.hg<m.ag)||(m.away===c.id&&m.ag<m.hg)));
+  const pending=[];if(!out&&G.ST.g.start_date){const drawn=new Set((await q("SELECT DISTINCT stage FROM matches WHERE season=$1 AND comp='cup' AND league_id=$2",[G.ST.g.season,c.league_id])).map(x=>x.stage));
+   for(const x of SE.MD().filter(x=>x.kind==='cup'&&!drawn.has(x.stage)))pending.push({stage:x.stage,name:x.name,md:x.md,kickoff:G.C.kickoff(G.ST.g.start_date,x.md)});}
+  s.json({...clubRow(c,N),europe:eu?.comp||null,cup_out:out,pending_cup:pending,squad:G.squad(c.id).map(G.pub),matches:ms.map(m=>({...m,home_name:G.clubName(m.home),away_name:G.clubName(m.away)}))});}));
+ // competições para as setas de troca (ligas, copas nacionais, copas europeias)
+ app.get('/api/comps',wrap(async(r,s)=>{await ready;s.json([...G.LEAGUES.map(l=>({key:'L'+l.id,type:'league',id:l.id,name:l.name,country:l.country})),...G.EU.COMPS.map(c=>({key:'E'+c.key,type:'europe',id:c.key,name:c.name,size:c.size})),...G.LEAGUES.map(l=>({key:'C'+l.id,type:'cup',id:l.id,name:l.cup_name,country:l.country}))]);}));
+ // estatísticas por competição (gols, assistências, notas) a partir dos jogos disputados
+ app.get('/api/stats',wrap(async(r,s)=>{await ready;const k=String(r.query.comp||'');const season=G.ST.g.season;let ms=[];
+  if(/^L\d+$/.test(k))ms=await q("SELECT home,away,hg,ag,details FROM matches WHERE season=$1 AND comp='league' AND league_id=$2 AND played",[season,+k.slice(1)]);
+  else if(/^C\d+$/.test(k))ms=await q("SELECT home,away,hg,ag,details FROM matches WHERE season=$1 AND comp='cup' AND league_id=$2 AND played",[season,+k.slice(1)]);
+  const P=new Map(),T=new Map();const pp=(id,club)=>{let x=P.get(id);if(!x){const p=G.rec(id);x={id,name:p?.name||'?',pos:p?.primary_position,club_id:club,club:G.clubName(club),g:0,a:0,j:0,rs:0,rn:0,motm:0};P.set(id,x);}return x;};
+  const tt=id=>{let x=T.get(id);if(!x){x={club_id:id,name:G.clubName(id),gp:0,gc:0,cs:0,j:0};T.set(id,x);}return x;};
+  for(const m of ms){const d=m.details||{};for(const e of d.events||[])if(!e.og&&e.scorer_id){pp(e.scorer_id,e.club).g++;if(e.assist_id)pp(e.assist_id,e.club).a++;}
+   for(const [id,club,rt,min] of d.pl||[]){const x=pp(id,club);x.j++;if(rt!=null){x.rs+=rt;x.rn++;}}if(d.motm?.id)P.get(d.motm.id)&&P.get(d.motm.id).motm++;
+   const h=tt(m.home),a=tt(m.away);h.j++;a.j++;h.gp+=m.hg;h.gc+=m.ag;a.gp+=m.ag;a.gc+=m.hg;if(!m.ag)h.cs++;if(!m.hg)a.cs++;}
+  const L=[...P.values()].map(x=>({...x,nota:x.rn?Math.round(x.rs/x.rn*100)/100:null}));const minJ=Math.max(1,Math.floor(ms.length/(T.size||1)*0.4));
+  s.json({comp:k,matches:ms.length,scorers:L.filter(x=>x.g).sort((a,b)=>b.g-a.g||b.a-a.a).slice(0,20),assists:L.filter(x=>x.a).sort((a,b)=>b.a-a.a||b.g-a.g).slice(0,20),
+   ratings:L.filter(x=>x.nota!=null&&x.j>=minJ).sort((a,b)=>b.nota-a.nota).slice(0,20),motm:L.filter(x=>x.motm).sort((a,b)=>b.motm-a.motm).slice(0,10),
+   attack:[...T.values()].sort((a,b)=>b.gp-a.gp).slice(0,10),defense:[...T.values()].sort((a,b)=>a.gc-b.gc).slice(0,10)});}));
  app.get('/api/players/:id',wrap(async(r,s)=>{await ready;const p=G.rec(r.params.id);if(!p)throw fail('Jogador não encontrado',404);s.json(G.pub(p));}));
  app.get('/api/matches/:id',wrap(async(r,s)=>{const [m]=await q('SELECT * FROM matches WHERE id=$1',[+r.params.id]);if(!m)throw fail('Jogo não encontrado',404);s.json({...m,home_name:G.clubName(m.home),away_name:G.clubName(m.away)});}));
  app.get('/api/transfers',wrap(async(r,s)=>{const t=await q('SELECT * FROM transfers ORDER BY id DESC LIMIT 100');s.json(t.map(x=>({...x,player:G.rec(x.player_id)?.name,from:G.clubName(x.from_club),to:G.clubName(x.to_club)})));}));
